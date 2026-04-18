@@ -1,88 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertTriangle,
   TrendingUp,
   TrendingDown,
   Zap,
-  ExternalLink,
-  Clock,
-  BarChart2,
+  Activity,
+  ShieldAlert,
+  BrainCircuit,
+  Loader2,
 } from "lucide-react";
-
-type Signal = {
-  id: number;
-  asset: string;
-  type: "bullish" | "bearish" | "neutral";
-  title: string;
-  summary: string;
-  confidence: number;
-  timeAgo: string;
-  sources: string[];
-  detail: string;
-};
-
-const liveSignals: Signal[] = [
-  {
-    id: 1,
-    asset: "BTC",
-    type: "bullish",
-    title: "Whale accumulation cluster detected",
-    summary: "Three wallets holding 22K+ BTC each executed coordinated buy orders within a 4-hour window.",
-    confidence: 88,
-    timeAgo: "3m ago",
-    sources: ["Glassnode", "Nansen", "Arkham"],
-    detail:
-      "On-chain data reveals a significant accumulation pattern: three dormant wallets (inactive for 180+ days) simultaneously transferred a combined 66,200 BTC from cold storage to exchange hot wallets before executing buy orders at the $66,800–$67,400 range. Historical analysis of similar events shows a mean 12.4% price appreciation over the following 14 days.",
-  },
-  {
-    id: 2,
-    asset: "ETH",
-    type: "bullish",
-    title: "ETF inflow surge — 3rd consecutive day",
-    summary: "Spot ETH ETF products recorded $420M net inflow today, the highest single-day figure in Q2.",
-    confidence: 82,
-    timeAgo: "11m ago",
-    sources: ["Bloomberg", "SoSoValue", "Reuters"],
-    detail:
-      "Three major ETH spot ETF products — BlackRock ETHA, Fidelity FETH, and Bitwise ETHW — collectively recorded $420M in net inflows today. This marks the third consecutive positive day and the highest single-day inflow since launch. Institutional demand at this level has historically preceded 8–15% rallies within 7 days based on BTC ETF precedent.",
-  },
-  {
-    id: 3,
-    asset: "SOL",
-    type: "bearish",
-    title: "Validator concentration risk flagged",
-    summary: "Top 5 validators now control 43.1% of stake weight — approaching critical centralization threshold.",
-    confidence: 74,
-    timeAgo: "28m ago",
-    sources: ["Solana Beach", "Validators.app"],
-    detail:
-      "Network health metrics indicate growing validator concentration on the Solana network. The top 5 validators now control 43.1% of total stake weight, up from 38.2% 30 days ago. While not immediately threatening, this trend historically correlates with reduced network confidence and can dampen institutional appetite. Our model assigns a 74% probability of negative price impact within 30 days if trend continues.",
-  },
-  {
-    id: 4,
-    asset: "ARB",
-    type: "neutral",
-    title: "STIP round 2 governance vote live",
-    summary: "Community vote on $70M STIP 2.0 allocation opened — outcome shapes ecosystem incentives for Q3.",
-    confidence: 61,
-    timeAgo: "1h ago",
-    sources: ["Arbitrum DAO", "Tally"],
-    detail:
-      "The Arbitrum DAO has opened voting on the Short-Term Incentive Program (STIP) 2.0, which proposes allocating 70M ARB in liquidity incentives to DeFi protocols. Leading proposals include Uniswap v4 integration grants and GMX v2 trading fee subsidies. Historically, STIP announcements create short-term volatility with mixed directional bias — confidence level is moderate at 61%.",
-  },
-];
+import type { FinalDecision } from "@/lib/ai/decision";
 
 const typeConfig = {
   bullish: {
@@ -112,201 +44,161 @@ const typeConfig = {
 };
 
 export default function SignalsSection() {
-  const [selected, setSelected] = useState<Signal | null>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [result, setResult] = useState<FinalDecision | null>(null);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const analyzeNow = async () => {
+    try {
+      setStatus("loading");
+      setErrorMsg("");
+      const res = await fetch("/api/analyze");
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to analyze market");
+      }
+      
+      setResult(data);
+      setStatus("success");
+    } catch (err: any) {
+      setErrorMsg(err.message);
+      setStatus("error");
+    }
+  };
 
   return (
     <section id="signals" className="py-32 px-6 relative">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[1px] bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
 
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
+      <div className="max-w-4xl mx-auto">
+        {/* Header and Trigger */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
           <span className="text-sm text-accent font-medium tracking-widest uppercase mb-4 block">
-            Live Signal Feed
+            Real-Time Analysis
           </span>
           <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-5">
-            Intelligence,{" "}
+            AI Market{" "}
             <span className="bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
-              Delivered Live
+              Verdict
             </span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Every signal comes with source attribution, confidence scoring, and full reasoning — click any alert to see the full analysis.
+          <p className="text-muted-foreground text-lg max-w-xl mx-auto mb-8">
+            Trigger a real-time sweep of top global news and market data.
+            Our multi-agent pipeline compresses the noise into a single structured verdict.
           </p>
-        </motion.div>
 
-        {/* Signal cards */}
-        <div className="flex flex-col gap-4">
-          {liveSignals.map((signal, i) => {
-            const cfg = typeConfig[signal.type];
-            const Icon = cfg.icon;
-
-            return (
-              <motion.div
-                key={signal.id}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.08 }}
-              >
-                <Card
-                  className={`group bg-card/60 border-border hover:border-opacity-50 backdrop-blur-sm cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl`}
-                  onClick={() => setSelected(signal)}
-                >
-                  <CardContent className="p-5">
-                    <div className="flex items-start gap-4">
-                      {/* Icon */}
-                      <div
-                        className={`w-9 h-9 rounded-xl ${cfg.bg} border ${cfg.border} flex items-center justify-center shrink-0`}
-                      >
-                        <Icon className={`w-4 h-4 ${cfg.color}`} strokeWidth={2} />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 flex-wrap mb-1.5">
-                          <span
-                            className={`text-xs font-bold font-mono px-2 py-0.5 rounded-md ${cfg.bg} ${cfg.color} border ${cfg.border}`}
-                          >
-                            {signal.asset}
-                          </span>
-                          <span
-                            className={`text-xs font-medium ${cfg.color}`}
-                          >
-                            {cfg.label}
-                          </span>
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
-                            <Clock className="w-3 h-3" />
-                            {signal.timeAgo}
-                          </span>
-                        </div>
-
-                        <p className="text-sm font-semibold text-foreground mb-1">
-                          {signal.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                          {signal.summary}
-                        </p>
-
-                        {/* Confidence bar */}
-                        <div className="mt-3 flex items-center gap-3">
-                          <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
-                            <motion.div
-                              className={`h-full rounded-full ${cfg.bar}`}
-                              initial={{ width: 0 }}
-                              whileInView={{ width: `${signal.confidence}%` }}
-                              viewport={{ once: true }}
-                              transition={{ duration: 0.8, delay: 0.2 }}
-                            />
-                          </div>
-                          <span className="text-xs font-mono text-muted-foreground shrink-0">
-                            {signal.confidence}% confidence
-                          </span>
-                          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* View All */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="mt-10 text-center"
-        >
           <Button
-            variant="outline"
+            onClick={analyzeNow}
+            disabled={status === "loading"}
             size="lg"
-            className="border-border hover:bg-white/5 text-muted-foreground hover:text-foreground"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground glow-violet h-14 px-8 text-lg rounded-full"
           >
-            <BarChart2 className="w-4 h-4 mr-2" />
-            View All Signals
+            {status === "loading" ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                Agents Analyzing Data...
+              </>
+            ) : (
+              <>
+                <BrainCircuit className="w-5 h-5 mr-3" />
+                Analyze Last 24 Hours
+              </>
+            )}
           </Button>
-        </motion.div>
-      </div>
 
-      {/* Signal detail dialog */}
-      <AnimatePresence>
-        {selected && (
-          <Dialog open onOpenChange={() => setSelected(null)}>
-            <DialogContent className="bg-card border-border max-w-lg">
-              <DialogHeader>
-                <div className="flex items-center gap-3 mb-2">
-                  {(() => {
-                    const cfg = typeConfig[selected.type];
-                    const Icon = cfg.icon;
-                    return (
-                      <>
-                        <div className={`w-8 h-8 rounded-lg ${cfg.bg} border ${cfg.border} flex items-center justify-center`}>
-                          <Icon className={`w-4 h-4 ${cfg.color}`} strokeWidth={2} />
-                        </div>
-                        <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded ${cfg.bg} ${cfg.color} border ${cfg.border}`}>
-                          {selected.asset}
-                        </span>
-                        <span className={`text-xs font-medium ${cfg.color}`}>{typeConfig[selected.type].label}</span>
-                        <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {selected.timeAgo}
-                        </span>
-                      </>
-                    );
-                  })()}
-                </div>
-                <DialogTitle className="text-base font-semibold text-foreground">
-                  {selected.title}
-                </DialogTitle>
-                <DialogDescription className="text-muted-foreground text-sm leading-relaxed">
-                  {selected.detail}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="mt-4">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2 font-medium">
-                  Sources
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {selected.sources.map((s) => (
-                    <span
-                      key={s}
-                      className="text-xs bg-muted text-muted-foreground px-2.5 py-1 rounded-md border border-border"
-                    >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-5 flex items-center gap-3">
-                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${typeConfig[selected.type].bar}`}
-                      style={{ width: `${selected.confidence}%` }}
-                    />
+          {status === "error" && (
+            <p className="mt-4 text-sm text-[oklch(0.65_0.22_25)] bg-[oklch(0.65_0.22_25/0.1)] py-2 px-4 rounded-lg inline-block">
+              {errorMsg}
+            </p>
+          )}
+        </motion.div>
+
+        {/* Results Container */}
+        {status === "success" && result && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mt-12"
+          >
+            <Card className="bg-card/40 border-primary/20 shadow-2xl backdrop-blur-md overflow-hidden relative">
+              <div
+                className="absolute inset-0 opacity-20 pointer-events-none"
+                style={{
+                  background: `radial-gradient(circle at 50% -20%, var(--color-${result.sentiment === 'bullish' ? 'chart-3' : result.sentiment === 'bearish' ? 'chart-5' : 'chart-4'}), transparent 70%)`
+                }}
+              />
+              
+              <CardHeader className="border-b border-border/50 bg-background/50 pb-6">
+                <CardTitle className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-3 rounded-xl ${typeConfig[result.sentiment].bg} border ${typeConfig[result.sentiment].border}`}>
+                      {(() => {
+                        const Icon = typeConfig[result.sentiment].icon;
+                        return <Icon className={`w-6 h-6 ${typeConfig[result.sentiment].color}`} />;
+                      })()}
+                    </div>
+                    <div>
+                      <span className="block text-sm text-muted-foreground font-medium mb-1">Market Sentiment</span>
+                      <span className={`text-3xl font-bold ${typeConfig[result.sentiment].color}`}>
+                        {typeConfig[result.sentiment].label}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-sm font-mono font-bold text-foreground">
-                    {selected.confidence}%
-                  </span>
-                  <span className="text-xs text-muted-foreground">confidence</span>
-                </div>
-              </div>
-              <div className="mt-5">
-                <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground glow-violet">
-                  <Zap className="w-4 h-4 mr-2" />
-                  Act on This Signal
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+
+                  <div className="flex gap-6">
+                    <div className="text-right">
+                      <span className="block text-sm text-muted-foreground font-medium mb-1">Risk Level</span>
+                      <span className="flex items-center justify-end gap-1.5 text-lg font-bold text-foreground capitalize">
+                        <ShieldAlert className="w-4 h-4 text-muted-foreground" />
+                        {result.riskLevel}
+                      </span>
+                    </div>
+                    <div className="text-right pl-6 border-l border-border">
+                      <span className="block text-sm text-muted-foreground font-medium mb-1">AI Confidence</span>
+                      <span className="flexItems-center justify-end gap-1.5 text-lg font-bold text-foreground">
+                        <Activity className="w-4 h-4 text-accent" />
+                        {result.confidence}%
+                      </span>
+                    </div>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="pt-8">
+                <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-5 flex items-center gap-2">
+                  <Zap className="w-4 h-4" /> Final Decision Reasoning
+                </h3>
+                <ul className="space-y-4">
+                  {result.keyReasons.map((reason, i) => (
+                    <motion.li
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 + (i * 0.1) }}
+                      className="flex items-start gap-4 p-4 rounded-lg bg-background/40 border border-border/50"
+                    >
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold font-mono">
+                        {i + 1}
+                      </span>
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        {reason}
+                      </p>
+                    </motion.li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
-      </AnimatePresence>
+      </div>
     </section>
   );
 }
