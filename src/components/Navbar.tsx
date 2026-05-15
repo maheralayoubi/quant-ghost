@@ -92,10 +92,10 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         <Sheet>
-          <SheetTrigger>
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="w-5 h-5" />
-            </Button>
+          <SheetTrigger
+            render={<Button variant="ghost" size="icon" className="md:hidden" />}
+          >
+            <Menu className="w-5 h-5" />
           </SheetTrigger>
           <SheetContent side="right" className="bg-background/95 backdrop-blur-xl border-border w-72">
             <SheetHeader>
