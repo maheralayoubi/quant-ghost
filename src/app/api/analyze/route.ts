@@ -58,15 +58,17 @@ export async function GET() {
     // 5. Update cache and return
     cachedResult = {
       timestamp: Date.now(),
-      data: finalDecision,
+      data: {
+        ...finalDecision,
+        rawMarketData: marketData,
+        rawNewsData: newsData,
+        marketSummary: marketSummary,
+        newsSummary: newsSummary,
+      } as any,
     };
 
     return NextResponse.json({ 
-      ...finalDecision, 
-      rawMarketData: marketData, 
-      rawNewsData: newsData,
-      marketSummary: marketSummary,
-      newsSummary: newsSummary,
+      ...cachedResult.data,
       fromCache: false 
     });
   } catch (error: any) {

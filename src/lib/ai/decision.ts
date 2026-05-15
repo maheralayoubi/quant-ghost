@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 
 export const DecisionSchema = z.object({
@@ -30,7 +30,7 @@ Instructions:
 
   try {
     const { object } = await generateObject({
-      model: google("gemini-2.5-pro"), // Stronger reasoning model for the final verdict
+      model: openai("gpt-4o"), // Stronger reasoning model for the final verdict
       schema: DecisionSchema,
       prompt,
     });
