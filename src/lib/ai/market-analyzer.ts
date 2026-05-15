@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { MarketData } from "../api/market";
 
 export async function analyzeMarketData(data: MarketData[]) {
@@ -23,7 +23,7 @@ Keep it concise, under 150 words.`;
 
   try {
     const { text } = await generateText({
-      model: openai("gpt-4o-mini"),
+      model: google("gemini-2.5-flash"),
       prompt,
     });
     return text;

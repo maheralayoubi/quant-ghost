@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { z } from "zod";
 
 export const DecisionSchema = z.object({
@@ -30,14 +30,14 @@ Instructions:
 
   try {
     const { object } = await generateObject({
-      model: openai("gpt-4o"), // Stronger reasoning model for the final verdict
+      model: google("gemini-2.5-pro"), // Stronger reasoning model for the final verdict
       schema: DecisionSchema,
       prompt,
     });
-    
+
     return object;
-  } catch (error) {
-    console.error("Final decision failed", error);
-    return null;
+  } catch (error: any) {
+    console.error("Final decision failed (quota or API error):", error.message);
+    throw new Error(`AI generateObject failed: ${error.message || String(error)}`);
   }
 }

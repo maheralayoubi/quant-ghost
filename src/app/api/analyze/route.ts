@@ -24,20 +24,29 @@ export async function GET() {
     return NextResponse.json({ ...cachedResult.data, fromCache: true });
   }
 
+  let marketData = null;
+  let newsData = null;
+  let marketSummary = null;
+  let newsSummary = null;
+
   try {
     console.log("Starting fresh analysis pipeline...");
 
     // 2. Fetch all raw data concurrently
-    const [marketData, newsData] = await Promise.all([
+    const rawData = await Promise.all([
       getMarketData(),
       getNewsData(),
     ]);
+    marketData = rawData[0];
+    newsData = rawData[1];
 
     // 3. Run individual agent summarization and compression concurrently
-    const [marketSummary, newsSummary] = await Promise.all([
+    const summaries = await Promise.all([
       analyzeMarketData(marketData),
       summarizeNews(newsData),
     ]);
+    marketSummary = summaries[0];
+    newsSummary = summaries[1];
 
     // 4. Feed compressed intelligence to the Final Decision Model
     const finalDecision = await makeFinalDecision(newsSummary, marketSummary);
@@ -52,11 +61,24 @@ export async function GET() {
       data: finalDecision,
     };
 
-    return NextResponse.json({ ...finalDecision, fromCache: false });
-  } catch (error) {
+    return NextResponse.json({ 
+      ...finalDecision, 
+      rawMarketData: marketData, 
+      rawNewsData: newsData,
+      marketSummary: marketSummary,
+      newsSummary: newsSummary,
+      fromCache: false 
+    });
+  } catch (error: any) {
     console.error("Critical failure in Analyze API:", error);
     return NextResponse.json(
-      { error: "Internal server error during analysis pipeline." },
+      { 
+        error: error.message || "Internal server error during analysis pipeline.",
+        rawMarketData: marketData,
+        rawNewsData: newsData,
+        marketSummary: marketSummary,
+        newsSummary: newsSummary
+      },
       { status: 500 }
     );
   }

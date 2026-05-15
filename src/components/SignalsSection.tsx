@@ -55,9 +55,25 @@ export default function SignalsSection() {
       const res = await fetch("/api/analyze");
       const data = await res.json();
       
+      console.groupCollapsed("🤖 Agents Analyzing Data Pipeline...");
+      console.log("1️⃣ Fetching Raw Market Data (CoinGecko API):", data.rawMarketData || "Failed/Skipped");
+      console.log("2️⃣ Fetching Raw News Data (NewsData.io API):", data.rawNewsData || "Failed/Skipped");
+      console.log("3️⃣ Processing Market Data (Gemini 2.5 Flash):", data.marketSummary || "Failed/Skipped");
+      console.log("4️⃣ Processing News Data (Gemini 2.5 Flash):", data.newsSummary || "Failed/Skipped");
+      
       if (!res.ok) {
+        console.error("5️⃣ Final Decision (Gemini 2.5 Pro): ❌ ERROR -", data.error);
+        console.groupEnd();
         throw new Error(data.error || "Failed to analyze market");
       }
+
+      console.log("5️⃣ Final Decision (Gemini 2.5 Pro): ✅ SUCCESS -", {
+        sentiment: data.sentiment,
+        riskLevel: data.riskLevel,
+        confidence: data.confidence,
+        keyReasons: data.keyReasons
+      });
+      console.groupEnd();
       
       setResult(data);
       setStatus("success");
